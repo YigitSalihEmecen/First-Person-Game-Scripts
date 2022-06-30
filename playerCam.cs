@@ -4,7 +4,9 @@ using UnityEngine;
 
 public class playerCam : MonoBehaviour
 {
-
+    PlayerController playerController;
+    public GameObject player;
+    
     public float sensX;
     public float sensY;
 
@@ -20,12 +22,11 @@ public class playerCam : MonoBehaviour
     [Range(0f, 10f)][SerializeField] private float acceleration;
     [Range(0f, 10f)][SerializeField] private float deceleration;
     
-    
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        
+        playerController = player.GetComponent<PlayerController>();
     }
 
     
@@ -50,7 +51,7 @@ public class playerCam : MonoBehaviour
 
     void dynamicFov()
     {
-        if (Input.GetKey(KeyCode.LeftShift) && Input.GetButton("Vertical"))
+        if (Input.GetKey(KeyCode.LeftShift) && Input.GetButton("Vertical") && playerController.crouching == false)
         {
             cameraF.fieldOfView = Mathf.Lerp(GetComponent<Camera>().fieldOfView, 60 + FOVIncrease, acceleration * Time.deltaTime);
         }
