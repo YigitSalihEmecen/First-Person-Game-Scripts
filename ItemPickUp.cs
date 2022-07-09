@@ -12,12 +12,15 @@ public class ItemPickUp : MonoBehaviour
     public GameObject realObject;
     public GameObject pickUpText;
     public AudioSource pickUpSound;
+    public AudioSource putDownSound;
     public Transform target;
     public float pickUpSpeed = 1;
     public bool inHands;
     public BoxCollider boxCollider;
     public bool inReach;
     public bool puttingItBack;
+    public HangClothesTask hangClothesTask;
+    
     void Start()
     {
         inReach = false;
@@ -54,11 +57,13 @@ public class ItemPickUp : MonoBehaviour
 
         else if (Input.GetButtonDown("Interact") && ReachTool.canReach == true && inHands == true)
         {
+            putDownSound.Play();
             pivotPosition = ReachTool.pivotPosition;
             pivotRotation = ReachTool.pivotRotation;
             puttingItBack = true;
             inHands = false;
-            boxCollider.enabled = true;
+            hangClothesTask.questProgression += 1;
+            //boxCollider.enabled = true;
         }
 
         if (inHands == true)
