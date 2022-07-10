@@ -17,7 +17,7 @@ public class PlayerController : MonoBehaviour
     public float jumpCooldown;
     public float airMultiplier;
     bool readyToJump;
-
+    // Evren was here.
     [Header("Crouch Handling")]
     public float crouchSpeed;
     public float crouchYScale;
