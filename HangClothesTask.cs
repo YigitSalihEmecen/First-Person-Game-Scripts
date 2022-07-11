@@ -7,16 +7,11 @@ using UnityEngine.UI;
 public class HangClothesTask : MonoBehaviour
 {
     public ButtonPress buttonPress;
-    public bool questStart;
-    public Text taskText;
     public GameObject questSprite;
-    public int questProgression = 0;
     public AudioSource questCompleteSound;
-    void Start()
-    {
-        questStart = false;
-    }
-
+    public Text taskText;
+    public bool questStart = false;
+    public int questProgression = 0;
     
     void Update()
     {

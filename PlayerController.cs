@@ -1,7 +1,9 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
+using Random = UnityEngine.Random;
 
 public class PlayerController : MonoBehaviour
 {
@@ -64,6 +66,7 @@ public class PlayerController : MonoBehaviour
     public bool hasPlayedWalkingSound;
     private float defaultYPos;
     private float timer;
+    public bool onDirtyFloor = false;
     Vector3 moveDirection;
     Rigidbody rb;
 
@@ -77,6 +80,22 @@ public class PlayerController : MonoBehaviour
         crouchWalking,
         air,
         
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("dirtyFloor"))
+        {
+            onDirtyFloor = true;
+        }
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("dirtyFloor"))
+        {
+            onDirtyFloor = false;
+        }
     }
 
     private void Start()
@@ -307,6 +326,7 @@ public class PlayerController : MonoBehaviour
                 woodClips.volume = Random.Range(0.6f - volumeChangeMultiplier, 0.6f);
                 woodClips.pitch = Random.Range(0.85f - pitchChangeMultiplier, 0.85f + pitchChangeMultiplier);
                 woodClips.PlayOneShot(woodClips.clip);
+                hasPlayedWalkingSound = true;
                 hasPlayedWalkingSound = true;
             }
             

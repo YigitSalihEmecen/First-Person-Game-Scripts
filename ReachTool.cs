@@ -5,14 +5,21 @@ using UnityEngine;
 
 public class ReachTool : MonoBehaviour
 {
-    public bool canReach;
     public float pivotRotation;
-    public GameObject pivot;
+
+    public enum ReachState
+    {
+        nothing,
+        clothRack,
+        broomPivot,
+    }
+
+    public ReachState state;
 
     public Vector3 pivotPosition;
     void Start()
     {
-        canReach = false;
+        state = ReachState.nothing;
         pivotPosition = transform.position;
     }
 
@@ -20,16 +27,26 @@ public class ReachTool : MonoBehaviour
     {
         if (other.CompareTag("pivot"))
         {
-            canReach = true;
+            state = ReachState.clothRack;
             pivotPosition = other.transform.position;
             pivotRotation = other.transform.eulerAngles.y;
+        }
+        else if (other.CompareTag("broomPivot"))
+        {
+            state = ReachState.broomPivot;
+            pivotPosition = other.transform.position;
+            pivotRotation = other.transform.eulerAngles.z;
         }
     }
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("pivot"))
         {
-            canReach = false;
+            state = ReachState.nothing;
+        }
+        else if (other.CompareTag("broomPivot"))
+        {
+            state = ReachState.nothing;
         }
     }
 }

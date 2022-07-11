@@ -6,10 +6,10 @@ using UnityEngine;
 public class ButtonPress : MonoBehaviour
 {
     public Animator animator;
-    public bool inReach;
     public AudioSource pressSound;
-    public bool pressed;
     public GameObject pressText;
+    public bool pressed;
+    public bool inReach;
 
     private void OnTriggerEnter(Collider other)
     {
