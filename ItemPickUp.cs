@@ -52,7 +52,7 @@ public class ItemPickUp : MonoBehaviour
             pickUpText.SetActive(false);
             inHands = true;
             inReach = false;
-            boxCollider.enabled = false;
+            //boxCollider.enabled = false;
             puttingItBack = false;
         }
 

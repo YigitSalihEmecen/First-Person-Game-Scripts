@@ -54,7 +54,7 @@ public class PlayerController : MonoBehaviour
     [Header("Footstep Sounds")] 
     [SerializeField] private AudioSource woodClips;
     [SerializeField] private AudioClip[] sounds;
-    [SerializeField] private float volumeChangeMultiplier = 0.5f;
+    [SerializeField] private float volumeChangeMultiplier = 0.3f;
     [SerializeField] private float pitchChangeMultiplier = 0.5f;
     
     
@@ -298,7 +298,7 @@ public class PlayerController : MonoBehaviour
             if (sinState == 1 && hasPlayedWalkingSound == false)
             {
                 woodClips.clip = sounds[Random.Range(0, sounds.Length)];
-                woodClips.volume = Random.Range(0.6f - volumeChangeMultiplier, 0.6f);
+                woodClips.volume = Random.Range(0.5f - volumeChangeMultiplier, 0.5f);
                 woodClips.pitch = Random.Range(0.85f - pitchChangeMultiplier, 0.85f + pitchChangeMultiplier);
                 woodClips.PlayOneShot(woodClips.clip);
                 hasPlayedWalkingSound = true;

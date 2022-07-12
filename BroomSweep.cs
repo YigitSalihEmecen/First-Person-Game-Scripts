@@ -12,6 +12,7 @@ public class BroomSweep : MonoBehaviour
     public ReachTool ReachTool;
     public GameObject pickUpText;
     public GameObject taskSprite;
+    public GameObject dirtyFloor;
     public AudioSource pickUpSound;
     public AudioSource putDownSound;
     public AudioSource taskCompleteSound;
@@ -79,7 +80,8 @@ public class BroomSweep : MonoBehaviour
             puttingItBack = true;
             inHands = false;
             boxCollider.enabled = true;
-            questStarted = false;
+            slider.gameObject.SetActive(false);
+            if (sweepDone == true) questStarted = false;
         }
         
         if (playerController.onDirtyFloor == true && Input.GetMouseButton(0) && sweepDone == false)
@@ -100,7 +102,10 @@ public class BroomSweep : MonoBehaviour
     void HoldItem()
     {
         //lerping item to hand position
-        transform.position = Vector3.Lerp(transform.position, target.position, pickUpSpeed * Time.deltaTime);
+        transform.position =
+            new Vector3(Mathf.Lerp(transform.position.x, target.position.x, pickUpSpeed * Time.deltaTime),
+                transform.position.y,
+                Mathf.Lerp(transform.position.z, target.position.z, pickUpSpeed * Time.deltaTime));
         
         if (isSweeping == false)
         {
@@ -130,6 +135,7 @@ public class BroomSweep : MonoBehaviour
             taskCompleteSound.Play();
             slider.gameObject.SetActive(false);
             taskSprite.SetActive(false);
+            dirtyFloor.SetActive(false);
         }
     }
 }

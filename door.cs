@@ -14,7 +14,6 @@ public class Door : MonoBehaviour
     
     void Start()
     {
-        inReach = false;
         animator.SetBool("Open", false);
         animator.SetBool("Closed", true);
     }
