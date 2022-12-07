@@ -7,6 +7,9 @@ using Random = UnityEngine.Random;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Functionality Check")] 
+    public bool canJump;
+    
     [Header("Movement")]
     private float moveSpeed;
     public float walkSpeed;
@@ -28,9 +31,9 @@ public class PlayerController : MonoBehaviour
     public bool crouching = false;
 
     [Header("Keybinds")]
-    public KeyCode jumpKey = KeyCode.Space;
-    public KeyCode sprintKey = KeyCode.LeftShift;
-    public KeyCode crouchKey = KeyCode.LeftControl;
+    [SerializeField] private KeyCode jumpKey = KeyCode.Space;
+    [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
+    [SerializeField] private KeyCode crouchKey = KeyCode.LeftControl;
 
     [Header("Ground Check")]
     public float playerHeight;
@@ -49,16 +52,31 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float sprintBobAmount = 1f;
     [SerializeField] private float crouchBobSpeed = 10f;
     [SerializeField] private float crouchBobAmount = 0.5f;
-    [SerializeField] private GameObject playerCam;
-    
+
     [Header("Footstep Sounds")] 
     [SerializeField] private AudioSource woodClips;
     [SerializeField] private AudioClip[] sounds;
     [SerializeField] private float volumeChangeMultiplier = 0.3f;
     [SerializeField] private float pitchChangeMultiplier = 0.5f;
-    
-    
+
+    [Header("Interactions")] 
+    [SerializeField] private Vector3 interactionRayPoint = default;
+    [SerializeField] private float interactionDistance = default;
+    [SerializeField] private LayerMask interactionLayer = default;
+    private Interactable currentInteractable;
+
+    [Header("Unclassified")] 
+    public bool crosshairState;
+    public bool handIsFull;
+    public GameObject itemInHand = null;
+    public GameObject defaultInteractionObject;
     public Transform orientation;
+    private Vector3 crosshairScaleBig;
+    private Vector3 crosshairScaleSmall;
+    public GameObject crosshair;
+    public GameObject interactingItem;
+    public GameObject itemInRange;
+    [SerializeField] private Camera playerCamera;
     float horizontalInput;
     float verticalInput;
     public float sinFunction;
@@ -66,7 +84,6 @@ public class PlayerController : MonoBehaviour
     public bool hasPlayedWalkingSound;
     private float defaultYPos;
     private float timer;
-    public bool onDirtyFloor = false;
     Vector3 moveDirection;
     Rigidbody rb;
 
@@ -81,23 +98,7 @@ public class PlayerController : MonoBehaviour
         air,
         
     }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("dirtyFloor"))
-        {
-            onDirtyFloor = true;
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("dirtyFloor"))
-        {
-            onDirtyFloor = false;
-        }
-    }
-
+    
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -105,8 +106,14 @@ public class PlayerController : MonoBehaviour
         readyToJump = true;
         startYScale = transform.localScale.y;
         woodClips = GetComponent<AudioSource>();
-        defaultYPos = playerCam.transform.localPosition.y;
+        defaultYPos = playerCamera.transform.localPosition.y;
+        crosshairScaleBig = new Vector3(2.5f, 2.5f, 2.5f);
+        crosshairScaleSmall = new Vector3(1, 1, 1);
+        interactingItem = defaultInteractionObject;
+        itemInRange = defaultInteractionObject;
     }
+
+
     private void Update()
     {
         // ground check
@@ -117,12 +124,17 @@ public class PlayerController : MonoBehaviour
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
         
-        MyInput();
+        StateHandler();
+        
+        if(canJump)JumpCheck();
+        
         CrouchHandler();
         SpeedControl();
-        StateHandler();
         DragControl();
         HandleHeadBobAndFootstepSounds();
+        HandleInteractionCheck();
+        HandleInteractionInput();
+        CrosshairHandling();
         
     }
     private void FixedUpdate()
@@ -146,7 +158,7 @@ public class PlayerController : MonoBehaviour
         }
         
     }
-    private void MyInput()
+    private void JumpCheck()
     {
         // when to jump
         if(Input.GetKey(jumpKey) && readyToJump && grounded)
@@ -292,7 +304,7 @@ public class PlayerController : MonoBehaviour
             timer += Time.deltaTime * walkBobSpeed;
             
             sinFunction = Mathf.Sin(timer);
-            playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x,
+            playerCamera.transform.localPosition = new Vector3(playerCamera.transform.localPosition.x,
                 defaultYPos + sinFunction * walkBobAmount);
 
             if (sinState == 1 && hasPlayedWalkingSound == false)
@@ -317,7 +329,7 @@ public class PlayerController : MonoBehaviour
             timer += Time.deltaTime * sprintBobSpeed;
             
             sinFunction = Mathf.Sin(timer);
-            playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x,
+            playerCamera.transform.localPosition = new Vector3(playerCamera.transform.localPosition.x,
                 defaultYPos + sinFunction * sprintBobAmount);
 
             if (sinState == 1 && hasPlayedWalkingSound == false)
@@ -342,7 +354,7 @@ public class PlayerController : MonoBehaviour
             timer += Time.deltaTime * crouchBobSpeed;
             
             sinFunction = Mathf.Sin(timer);
-            playerCam.transform.localPosition = new Vector3(playerCam.transform.localPosition.x,
+            playerCamera.transform.localPosition = new Vector3(playerCamera.transform.localPosition.x,
                 defaultYPos + sinFunction * crouchBobAmount);
 
             if (sinState == 1 && hasPlayedWalkingSound == false)
@@ -362,5 +374,54 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+    }
+    private void HandleInteractionCheck()
+    {
+        if (Physics.Raycast(playerCamera.ViewportPointToRay(interactionRayPoint),
+                out RaycastHit hit, interactionDistance) && hit.collider.gameObject.layer == 9)
+        {
+            if (hit.collider.gameObject.layer == 9 && (currentInteractable == null || hit.collider.gameObject.GetInstanceID() != currentInteractable.gameObject.GetInstanceID()))
+            {
+                hit.collider.TryGetComponent(out currentInteractable);
+                if (currentInteractable)
+                {
+                    currentInteractable.OnFocus();
+                    crosshairState = true;
+                    itemInRange = hit.collider.gameObject;
+                }
+            }
+
+        }
+        else if (currentInteractable)
+        {
+            currentInteractable.OnLoseFocus();
+            interactingItem = defaultInteractionObject;
+            itemInRange = defaultInteractionObject;
+            crosshairState = false;
+            currentInteractable = null;
+        }
+    }
+    private void HandleInteractionInput()
+    {
+        if (Input.GetButtonDown("Interact") && currentInteractable != null && Physics.Raycast(
+                playerCamera.ViewportPointToRay(interactionRayPoint), out RaycastHit hit, interactionDistance,
+                interactionLayer))
+        {
+            currentInteractable.OnInteract();
+            interactingItem = hit.collider.gameObject;
+        }
+    }
+    void CrosshairHandling()
+    {
+        if (crosshairState == true)
+        {
+            crosshair.transform.localScale = crosshairScaleBig;
+            //Vector3.Lerp(crosshair.transform.localScale, crosshairScaleBig, 20 * Time.deltaTime);
+        }
+        else
+        {
+            crosshair.transform.localScale = crosshairScaleSmall;
+            //Vector3.Lerp(crosshair.transform.localScale, crosshairScaleSmall, 20 * Time.deltaTime);
+        }
     }
 }

@@ -5,66 +5,59 @@ using UnityEngine;
 
 public class ItemPickUp : MonoBehaviour
 {
-    public ReachTool ReachTool;
-    public HangClothesTask hangClothesTask;
-    public GameObject realObject;
+    public PlayerController playerController;
     public GameObject pickUpText;
+    public Transform temporaryPivot;
     public AudioSource pickUpSound;
     public AudioSource putDownSound;
-    public Transform target;
+    public Transform handPosition;
     public BoxCollider boxCollider;
     public float pickUpSpeed = 1;
     public bool inHands;
-    public bool inReach;
     public bool puttingItBack;
     
-    private Vector3 pivotPosition;
-    private float pivotRotation;
-
+    public itemType typeOfItem;
+    public enum itemType
+    {
+        sShirt,
+        mShirt,
+        lShirt,
+    }
     
-    void Start()
-    {
-        inReach = false;
-        inHands = false;
-        pickUpText.SetActive(false);
-    }
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Reach") && inHands == false)
-        {
-            inReach = true;
-            pickUpText.SetActive(true);
-        }
-    }
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Reach"))
-        {
-            inReach = false;
-            pickUpText.SetActive(false);
-        }
-    }
     void Update()
     {
-        if (inReach && Input.GetButtonDown("Interact") && inHands == false)
+        if (playerController.interactingItem.gameObject == gameObject && inHands == false && playerController.handIsFull == false)
         {
             pickUpSound.Play();
             pickUpText.SetActive(false);
+            playerController.itemInHand = gameObject;
             inHands = true;
-            inReach = false;
-            //boxCollider.enabled = false;
+            playerController.handIsFull = true;
+            boxCollider.enabled = false;
             puttingItBack = false;
         }
 
-        else if (Input.GetButtonDown("Interact") && ReachTool.state == ReachTool.ReachState.clothRack && inHands == true)
+        else if (playerController.interactingItem.gameObject.CompareTag("pivot") && inHands == true)
         {
             putDownSound.Play();
-            pivotPosition = ReachTool.pivotPosition;
-            pivotRotation = ReachTool.pivotRotation;
+            playerController.itemInHand = null;
+            temporaryPivot = playerController.interactingItem.transform;
             puttingItBack = true;
             inHands = false;
-            hangClothesTask.questProgression += 1;
-            //boxCollider.enabled = true;
+            playerController.handIsFull = false;
+            boxCollider.enabled = true;
+        } 
+        
+        else if (playerController.interactingItem.gameObject.CompareTag("customer") && inHands == true &&
+                 playerController.itemInRange.gameObject.GetComponent<CustomerTask>().isOrderRight == true)
+        {
+            putDownSound.Play();
+            playerController.itemInHand = null;
+            temporaryPivot = playerController.itemInRange.transform.GetChild(0).transform;
+            puttingItBack = true;
+            inHands = false;
+            playerController.handIsFull = false;
+            boxCollider.enabled = true;
         }
 
         if (inHands == true)
@@ -80,15 +73,24 @@ public class ItemPickUp : MonoBehaviour
     void HoldItem()
     {
         //lerping item to hand position
-        transform.position = Vector3.Lerp(transform.position, target.position, pickUpSpeed * Time.deltaTime);
-        Vector3 newRotation = new Vector3(0, Mathf.Lerp(transform.eulerAngles.y, target.eulerAngles.y, 20 * Time.deltaTime), 0);
+        transform.position = Vector3.Lerp(transform.position, handPosition.position, pickUpSpeed * Time.deltaTime);
+        Vector3 newRotation = new Vector3(0, Mathf.LerpAngle(transform.eulerAngles.y, handPosition.eulerAngles.y +90, 20 * Time.deltaTime), 0);
         transform.eulerAngles = newRotation;
     }
     void PutItemBack()
     {
         //lerping item to pivot position
-        transform.position = Vector3.Lerp(transform.position, pivotPosition, 5 * Time.deltaTime);
-        Vector3 newRotation = new Vector3(0, Mathf.Lerp(transform.eulerAngles.y, pivotRotation, 20 * Time.deltaTime), 0);
+        transform.position = Vector3.Lerp(transform.position, temporaryPivot.position, 30 * Time.deltaTime);
+        Vector3 newRotation = new Vector3(0, Mathf.Lerp(transform.eulerAngles.y, temporaryPivot.eulerAngles.y, 20 * Time.deltaTime), 0);
         transform.eulerAngles = newRotation;
+        if (transform.position == temporaryPivot.position)
+        {
+            puttingItBack = false;
+        }
+    }
+
+    void GiveItemToCustomer()
+    {
+        
     }
 }

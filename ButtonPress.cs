@@ -6,32 +6,23 @@ using UnityEngine;
 public class ButtonPress : MonoBehaviour
 {
     public Animator animator;
+    public PlayerController playerController;
     public AudioSource pressSound;
     public GameObject pressText;
     public bool pressed;
-    public bool inReach;
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Reach"))
-        {
-            inReach = true;
-            pressText.SetActive(true);
-        }
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Reach"))
-        {
-            inReach = false;
-            pressText.SetActive(false);
-        }
-    }
-
+    
     void Update()
     {
-        if (inReach == true && Input.GetButtonDown("Interact"))
+        if (playerController.itemInRange.gameObject.CompareTag("button"))
+        {
+            pressText.SetActive(true);
+        }
+        else
+        {
+            pressText.SetActive(false);
+        }
+        
+        if (playerController.interactingItem.gameObject.GetInstanceID() == gameObject.GetInstanceID() && true && Input.GetButtonDown("Interact"))
         {
             animator.SetBool("Pressed", true);
             pressSound.Play();

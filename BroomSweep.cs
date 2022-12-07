@@ -8,15 +8,14 @@ public class BroomSweep : MonoBehaviour
 {
     [Header("Things to Drag & Drop")]
     public PlayerController playerController;
-    public ButtonPress buttonPress;
-    public ReachTool ReachTool;
+    public TaskTracker taskTracker;
+    public Animator animator;
     public GameObject pickUpText;
-    public GameObject taskSprite;
     public GameObject dirtyFloor;
     public AudioSource pickUpSound;
     public AudioSource putDownSound;
     public AudioSource taskCompleteSound;
-    public Transform target;
+    public Transform handPosition;
     public BoxCollider boxCollider;
     public Slider slider;
     
@@ -25,94 +24,61 @@ public class BroomSweep : MonoBehaviour
     private float sweepTimer = 0;
     public float sweepTaskLenght;
     public bool inHands;
-    public bool inReach;
     public bool puttingItBack;
     public bool isSweeping;
-    public bool sweepDone;
-    public bool questStarted;
-    
+    public bool onDirtyFloor;
+
     private Vector3 pivotPosition;
     private float pivotRotation;
-    
-    void Start()
-    {
-        pickUpText.SetActive(false);
-    }
+
     private void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Reach") && inHands == false)
+        if (other.CompareTag("dirtyFloor"))
         {
-            inReach = true;
-            if (questStarted == true) pickUpText.SetActive(true);
+            onDirtyFloor = true;
         }
     }
     private void OnTriggerExit(Collider other)
     {
-        if (other.CompareTag("Reach"))
+        if (other.CompareTag("dirtyFloor"))
         {
-            inReach = false;
-            pickUpText.SetActive(false);
+            onDirtyFloor = false;
         }
     }
+
     void Update()
     {
-        if (buttonPress.pressed == true)
-        {
-            questStarted = true;
-            taskSprite.SetActive(true);
-        }
+        PickUpTextHandler();
+        BroomInteractions();
         
-        if (inReach && Input.GetButtonDown("Interact") && inHands == false && questStarted == true)
-        {
-            pickUpSound.Play();
-            pickUpText.SetActive(false);
-            inHands = true;
-            inReach = false;
-            boxCollider.enabled = false;
-            puttingItBack = false;
-        }
-
-        else if (Input.GetButtonDown("Interact") && ReachTool.state == ReachTool.ReachState.broomPivot && inHands == true)
-        {
-            putDownSound.Play();
-            pivotPosition = ReachTool.pivotPosition;
-            pivotRotation = ReachTool.pivotRotation;
-            puttingItBack = true;
-            inHands = false;
-            boxCollider.enabled = true;
-            slider.gameObject.SetActive(false);
-            if (sweepDone == true) questStarted = false;
-        }
-        
-        if (playerController.onDirtyFloor == true && Input.GetMouseButton(0) && sweepDone == false)
+        if (onDirtyFloor == true && Input.GetMouseButton(0) && taskTracker.sweepTaskDone == false)
         {
             isSweeping = true;
+            animator.SetBool("isSweeping", true);
             slider.gameObject.SetActive(true);
             Sweeping();
         }
+
+        else
+        {
+            animator.SetBool("isSweeping",false);
+            isSweeping = false;
+        }
         
-        else isSweeping = false;
-        
-        if (inHands == true)HoldItem();
+        if (inHands == true) HoldItem();
        
-        if (puttingItBack == true && transform.position != pivotPosition)PutItemBack();
+        if (puttingItBack == true && transform.position != pivotPosition) PutItemBack();
         else puttingItBack = false;
-      
     }
     void HoldItem()
     {
         //lerping item to hand position
         transform.position =
-            new Vector3(Mathf.Lerp(transform.position.x, target.position.x, pickUpSpeed * Time.deltaTime),
+            new Vector3(Mathf.Lerp(transform.position.x, handPosition.position.x, pickUpSpeed * Time.deltaTime),
                 transform.position.y,
-                Mathf.Lerp(transform.position.z, target.position.z, pickUpSpeed * Time.deltaTime));
-        
-        if (isSweeping == false)
-        {
-            Vector3 newRotation = new Vector3(-90, 0, Mathf.Lerp(transform.eulerAngles.y, target.eulerAngles.y, 20 * Time.deltaTime));
-            transform.eulerAngles = newRotation;
-            //if i don't check if isSweeping is true or not, this part will interrupt with sweep animation.
-        }
+                Mathf.Lerp(transform.position.z, handPosition.position.z, pickUpSpeed * Time.deltaTime));
+        transform.eulerAngles =
+            new Vector3(transform.eulerAngles.x, handPosition.eulerAngles.y, transform.eulerAngles.z);
     }
     void PutItemBack()
     {
@@ -121,21 +87,50 @@ public class BroomSweep : MonoBehaviour
         Vector3 newRotation = new Vector3(-90, 0 ,Mathf.Lerp(transform.eulerAngles.z, pivotRotation, 20 * Time.deltaTime));
         transform.eulerAngles = newRotation;
     }
-
     void Sweeping()
     {
-        //setting a sin motion and a timer
         sweepTimer += Time.deltaTime;
         slider.value = sweepTimer / sweepTaskLenght;
-        transform.eulerAngles = new Vector3(-90 + (transform.eulerAngles.y + Mathf.Sin(sweepTimer*4)) * 10, 0, 0);
-        
+
         if (sweepTimer >= sweepTaskLenght)
         {
-            sweepDone = true;
+            taskTracker.sweepTaskDone = true;
             taskCompleteSound.Play();
             slider.gameObject.SetActive(false);
-            taskSprite.SetActive(false);
             dirtyFloor.SetActive(false);
+        }
+    }
+    void PickUpTextHandler()
+    {
+        if (playerController.itemInRange.gameObject.name == "Broom" && taskTracker.sweepTaskActivated == true)
+        {
+            pickUpText.SetActive(true);
+        }
+        else
+        {
+            pickUpText.SetActive(false);
+        }
+
+    }
+    void BroomInteractions()
+    {
+        if (playerController.interactingItem.gameObject.name == "Broom" && inHands == false && taskTracker.sweepTaskActivated == true)
+        {
+            pickUpSound.Play();
+            inHands = true;
+            boxCollider.enabled = false;
+            puttingItBack = false;
+        }
+
+        else if (playerController.interactingItem.gameObject.name == "BroomPivot" && inHands == true)
+        {
+            putDownSound.Play();
+            pivotPosition = playerController.interactingItem.transform.position;
+            pivotRotation = playerController.interactingItem.transform.eulerAngles.y;
+            puttingItBack = true;
+            inHands = false;
+            boxCollider.enabled = true;
+            slider.gameObject.SetActive(false);
         }
     }
 }
